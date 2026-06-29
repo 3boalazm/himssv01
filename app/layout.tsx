@@ -1,7 +1,15 @@
 import type { Metadata, Viewport } from "next"
-import { ThemeProvider } from "next-themes"
+import { IBM_Plex_Sans_Arabic } from "next/font/google"
 import { Analytics } from "@vercel/analytics/react"
 import "./globals.css"
+import { Providers } from "./providers"
+
+const arabic = IBM_Plex_Sans_Arabic({
+  subsets: ["arabic", "latin"],
+  weight: ["300", "400", "500", "600", "700"],
+  variable: "--font-arabic",
+  display: "swap",
+})
 
 export const metadata: Metadata = {
   title: {
@@ -36,19 +44,9 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="ar" dir="rtl" suppressHydrationWarning>
-      <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
-        <link
-          href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap"
-          rel="stylesheet"
-        />
-      </head>
-      <body data-theme-transition>
-        <ThemeProvider attribute="class" defaultTheme="dark" enableSystem disableTransitionOnChange={false}>
-          {children}
-        </ThemeProvider>
+    <html lang="ar" dir="rtl" suppressHydrationWarning data-theme-transition>
+      <body className={`${arabic.variable} antialiased`}>
+        <Providers>{children}</Providers>
         <Analytics />
       </body>
     </html>
