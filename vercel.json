@@ -1,8 +1,8 @@
 {
   "framework": "nextjs",
   "regions": ["iad1"],
-  "installCommand": "pnpm install --no-frozen-lockfile",
-  "buildCommand": "pnpm build",
+  "installCommand": "npm install --legacy-peer-deps",
+  "buildCommand": "npm run build",
   "headers": [
     {
       "source": "/(.*)",
