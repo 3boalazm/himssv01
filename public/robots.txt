@@ -1,0 +1,8 @@
+User-agent: *
+Disallow: /api/
+Disallow: /login
+Disallow: /register
+Disallow: /org/
+Disallow: /admin/
+
+Sitemap: https://hlos.sa/sitemap.xml
