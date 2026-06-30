@@ -2,110 +2,127 @@
 import { useState } from "react";
 import { Sidebar } from "@/components/sidebar";
 import { Topbar } from "@/components/topbar";
-import { KpiCard } from "@/components/kpi-card";
-import { StatusPill } from "@/components/status-pill";
-import { Building2, Users, CreditCard, Clock, Plus, X } from "lucide-react";
-import { organizations } from "@/lib/mock-data";
+import { organizations, type Organization } from "@/lib/mock-data";
+import { Building2, Plus, X, Users, Globe, TrendingUp, AlertCircle } from "lucide-react";
 
-const STATUS = {
-  active:   { tone: "success" as const, label: "نشط" },
-  trial:    { tone: "warning" as const, label: "تجريبي" },
-  expiring: { tone: "danger"  as const, label: "ينتهي قريباً" },
+const statusConfig = {
+  active:   { label: "نشط",        bg: "var(--primary-soft)", fg: "var(--primary)" },
+  expired:  { label: "منتهي",      bg: "var(--danger-soft)",  fg: "var(--danger)"  },
+  trial:    { label: "تجريبي",     bg: "var(--warning-soft)", fg: "var(--warning)" },
+  expiring: { label: "ينتهي قريباً", bg: "var(--amber-soft)", fg: "var(--amber)"  },
 };
 
-export default function OrganizationsPage() {
-  const [open, setOpen] = useState(false);
+export default function OrgsPage() {
+  const [showModal, setShowModal] = useState(false);
+
+  const totalSeats    = organizations.reduce((a, o) => a + parseInt(o.seats.split("/")[1]), 0);
+  const usedSeats     = organizations.reduce((a, o) => a + parseInt(o.seats.split("/")[0]), 0);
+  const activeOrgs    = organizations.filter(o => o.status === "active").length;
+  const expiringOrgs  = organizations.filter(o => o.status === "expiring" || o.status === "expired").length;
 
   return (
     <div className="min-h-screen bg-[var(--bg)]">
       <Sidebar />
-      <div className="mr-[220px]">
-        <Topbar title="المؤسسات" />
+      <div className="lg:mr-[220px]">
+        <Topbar title="إدارة المؤسسات" />
 
-        <main className="p-6 space-y-6">
-          <section className="grid grid-cols-2 lg:grid-cols-4 gap-4 stagger">
-            <KpiCard label="المؤسسات" value={24} icon={<Building2 className="size-4" />} />
-            <KpiCard label="إجمالي الـ Seats" value={1840} icon={<CreditCard className="size-4" />} delta="٧٨٪ مستخدمة" deltaTone="muted" />
-            <KpiCard label="المستخدمون النشطون" value={1432} icon={<Users className="size-4" />} delta="↑ ١٢٪ هذا الشهر" deltaTone="success" />
-            <KpiCard label="عقود تنتهي قريباً" value={3} icon={<Clock className="size-4" />} delta="خلال ٦٠ يوماً" deltaTone="warning" />
-          </section>
+        <main className="p-4 lg:p-6 space-y-5">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 stagger">
+            {[
+              { label: "مؤسسات نشطة",   val: activeOrgs,   icon: Building2,   color: "var(--primary)" },
+              { label: "إجمالي الـ seats", val: totalSeats,  icon: Users,       color: "var(--teal)" },
+              { label: "seats مستخدمة", val: usedSeats,    icon: TrendingUp,  color: "var(--purple)" },
+              { label: "تحتاج متابعة",  val: expiringOrgs, icon: AlertCircle, color: "var(--danger)" },
+            ].map(s => {
+              const Icon = s.icon;
+              return (
+                <div key={s.label} className="lift card-surface p-4 flex items-center gap-3">
+                  <div className="size-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: s.color + "18", color: s.color }}>
+                    <Icon className="size-4" />
+                  </div>
+                  <div>
+                    <p className="text-eyebrow">{s.label}</p>
+                    <p className="font-cooper text-xl font-bold text-[var(--fg)]">{s.val}</p>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
 
-          <section className="card-surface animate-slide-up overflow-hidden">
-            <div className="px-5 py-4 border-b border-[var(--border)] flex items-center justify-between">
-              <h3 className="font-bold">جميع المؤسسات</h3>
-              <button onClick={() => setOpen(true)} className="pressable inline-flex items-center gap-2 h-9 px-4 rounded-lg bg-[var(--primary)] text-[var(--primary-fg)] text-sm font-semibold shadow-primary-glow">
-                <Plus className="size-4" /> إنشاء مؤسسة جديدة
+          <div className="card-surface p-5">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-cooper font-bold text-[var(--fg)]">جميع المؤسسات</h3>
+              <button onClick={() => setShowModal(true)} className="pressable flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium text-[var(--primary-fg)] shadow-primary-glow transition-all" style={{ background: "var(--primary)" }}>
+                <Plus className="size-4" />مؤسسة جديدة
               </button>
             </div>
 
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="text-eyebrow border-b border-[var(--border)] bg-[var(--surface-2)]/40">
-                  <th className="text-right px-5 py-3 font-medium">المؤسسة</th>
-                  <th className="text-right px-3 py-3 font-medium">الدولة</th>
-                  <th className="text-right px-3 py-3 font-medium">المقاعد</th>
-                  <th className="text-right px-3 py-3 font-medium">البداية</th>
-                  <th className="text-right px-3 py-3 font-medium">النهاية</th>
-                  <th className="text-right px-5 py-3 font-medium">الحالة</th>
-                </tr>
-              </thead>
-              <tbody className="stagger">
-                {organizations.map((o) => (
-                  <tr key={o.id} className="border-b border-[var(--border)] last:border-0 hover:bg-[var(--surface-2)]/60 transition-colors">
-                    <td className="px-5 py-3.5 font-medium">{o.name}</td>
-                    <td className="px-3 py-3.5 text-[var(--fg-muted)]">{o.country}</td>
-                    <td className="px-3 py-3.5 num">{o.seats}</td>
-                    <td className="px-3 py-3.5 text-[var(--fg-muted)] num">{o.start}</td>
-                    <td className="px-3 py-3.5 text-[var(--fg-muted)] num">{o.end}</td>
-                    <td className="px-5 py-3.5">
-                      <StatusPill tone={STATUS[o.status].tone}>{STATUS[o.status].label}</StatusPill>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </section>
+            <div className="space-y-2 stagger">
+              {organizations.map((org, i) => {
+                const st = statusConfig[org.status];
+                const [used, total] = org.seats.split("/").map(Number);
+                const pct = Math.round((used / total) * 100);
+                return (
+                  <div key={org.id} className="flex items-center gap-4 p-4 rounded-xl border border-[var(--border)] hover:bg-[var(--surface-2)] transition-colors group pressable">
+                    <div className="size-10 rounded-xl bg-[var(--primary-soft)] flex items-center justify-center flex-shrink-0">
+                      <Building2 className="size-4 text-[var(--primary)]" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <p className="text-sm font-medium text-[var(--fg)] truncate">{org.name}</p>
+                        <span className="flex items-center gap-0.5 text-[10px] text-[var(--fg-subtle)] flex-shrink-0">
+                          <Globe className="size-3" />{org.country}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <div className="flex-1 h-1.5 rounded-full overflow-hidden bg-[var(--surface-2)]" style={{ maxWidth: 100 }}>
+                          <div className="h-full rounded-full" style={{ width: `${pct}%`, background: pct > 90 ? "var(--danger)" : "var(--primary)" }} />
+                        </div>
+                        <span className="text-[11px] text-[var(--fg-subtle)]">{org.seats} seats</span>
+                        <span className="text-[11px] text-[var(--fg-subtle)]">{org.start} ← {org.end}</span>
+                      </div>
+                    </div>
+                    <span className="text-[11px] font-semibold px-3 py-1 rounded-full flex-shrink-0" style={{ background: st.bg, color: st.fg }}>
+                      {st.label}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
         </main>
       </div>
 
-      {open && <CreateOrgModal onClose={() => setOpen(false)} />}
+      {showModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "rgba(0,0,0,.6)", backdropFilter: "blur(4px)" }}>
+          <div className="card-surface animate-scale-in w-full max-w-md" style={{ boxShadow: "var(--shadow-lg)" }}>
+            <div className="flex items-center justify-between p-5 border-b border-[var(--border)]">
+              <h3 className="font-cooper font-bold text-[var(--fg)]">إنشاء مؤسسة جديدة</h3>
+              <button onClick={() => setShowModal(false)} aria-label="إغلاق" className="pressable size-8 flex items-center justify-center rounded-xl hover:bg-[var(--surface-2)]">
+                <X className="size-4 text-[var(--fg-muted)]" />
+              </button>
+            </div>
+            <div className="p-5 space-y-4">
+              {[
+                { label: "اسم المؤسسة", placeholder: "مستشفى / وزارة / مجموعة طبية..." },
+                { label: "الدولة", placeholder: "KSA / UAE / BHR" },
+                { label: "عدد الـ seats", placeholder: "50", type: "number" },
+                { label: "بريد Org Admin", placeholder: "admin@hospital.sa", type: "email" },
+              ].map(f => (
+                <div key={f.label}>
+                  <label className="text-eyebrow block mb-1.5">{f.label}</label>
+                  <input type={f.type ?? "text"} placeholder={f.placeholder}
+                    className="w-full h-10 px-3 rounded-xl bg-[var(--surface-2)] border border-[var(--border)] text-sm text-[var(--fg)] placeholder:text-[var(--fg-subtle)] focus:outline-none focus:border-[var(--primary)] transition-colors" />
+                </div>
+              ))}
+            </div>
+            <div className="flex justify-end gap-2 p-5 border-t border-[var(--border)]">
+              <button onClick={() => setShowModal(false)} className="pressable px-4 py-2 rounded-xl border border-[var(--border)] text-sm text-[var(--fg-muted)] hover:bg-[var(--surface-2)]">إلغاء</button>
+              <button className="pressable px-5 py-2 rounded-xl text-sm font-semibold text-[var(--primary-fg)] shadow-primary-glow" style={{ background: "var(--primary)" }}>إنشاء المؤسسة</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
-  );
-}
-
-function CreateOrgModal({ onClose }: { onClose: () => void }) {
-  return (
-    <div className="fixed inset-0 z-50 grid place-items-center p-4" role="dialog" aria-modal="true">
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-[4px]" onClick={onClose} />
-      <form className="relative w-full max-w-xl card-surface shadow-pop animate-scale-in">
-        <div className="px-6 py-4 border-b border-[var(--border)] flex items-center justify-between">
-          <h2 className="font-bold">إنشاء مؤسسة جديدة</h2>
-          <button type="button" aria-label="إغلاق" onClick={onClose} className="pressable size-8 grid place-items-center rounded-md hover:bg-[var(--surface-2)] text-[var(--fg-muted)]">
-            <X className="size-4" />
-          </button>
-        </div>
-        <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-4">
-          <Field label="اسم المؤسسة" placeholder="مستشفى الملك..." className="md:col-span-2" />
-          <Field label="الدولة" placeholder="السعودية" />
-          <Field label="عدد الـ Seats" placeholder="50" type="number" />
-          <Field label="تاريخ البداية" type="date" />
-          <Field label="تاريخ النهاية" type="date" />
-          <Field label="بريد Org Admin" type="email" placeholder="admin@hospital.med.sa" className="md:col-span-2" />
-        </div>
-        <div className="px-6 py-4 border-t border-[var(--border)] flex justify-end gap-2">
-          <button type="button" onClick={onClose} className="pressable h-9 px-4 rounded-lg border border-[var(--border)] text-sm hover:bg-[var(--surface-2)]">إلغاء</button>
-          <button type="submit" className="pressable h-9 px-4 rounded-lg bg-[var(--primary)] text-[var(--primary-fg)] text-sm font-semibold shadow-primary-glow">إنشاء المؤسسة</button>
-        </div>
-      </form>
-    </div>
-  );
-}
-
-function Field({ label, className = "", ...props }: { label: string; className?: string } & React.InputHTMLAttributes<HTMLInputElement>) {
-  return (
-    <label className={`block ${className}`}>
-      <span className="text-eyebrow block mb-1.5">{label}</span>
-      <input {...props} className="w-full h-10 rounded-lg border border-[var(--border)] bg-[var(--surface-2)] px-3 text-sm focus:border-[var(--primary)] outline-none" />
-    </label>
   );
 }

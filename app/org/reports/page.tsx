@@ -4,23 +4,20 @@ import { Sidebar } from "@/components/sidebar";
 import { Topbar } from "@/components/topbar";
 import { DomainBarChart } from "@/components/charts/domain-bar-chart";
 import { WeeklyActivityChart } from "@/components/charts/weekly-activity";
-import { KpiCard } from "@/components/kpi-card";
-import { FileDown, FileSpreadsheet, AlertCircle, TrendingUp, Users, Award } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { FileDown, FileSpreadsheet, AlertCircle, TrendingUp, Users, Award, Loader2 } from "lucide-react";
+import { kpiStats, gapAnalysis } from "@/lib/mock-data";
 
 const TABS = [
   { id: "overview", label: "نظرة عامة" },
   { id: "domain",   label: "حسب المجال" },
-  { id: "member",   label: "حسب العضو" },
   { id: "gaps",     label: "الثغرات" },
 ] as const;
 
-const gaps = [
-  { domain: "التحليلات والذكاء الاصطناعي", severity: "high",   members: 14 },
-  { domain: "التوافقية والمعايير (HL7/FHIR)", severity: "medium", members: 9 },
-  { domain: "أمن المعلومات الصحية", severity: "medium", members: 7 },
-  { domain: "إدارة التغيير الرقمي", severity: "low", members: 3 },
-];
+const severityConfig = {
+  high:   { label: "عالي",    bg: "var(--danger-soft)",  fg: "var(--danger)" },
+  medium: { label: "متوسط",   bg: "var(--warning-soft)", fg: "var(--warning)" },
+  low:    { label: "منخفض",   bg: "var(--primary-soft)", fg: "var(--primary)" },
+};
 
 export default function ReportsPage() {
   const [tab, setTab] = useState<typeof TABS[number]["id"]>("overview");
@@ -34,89 +31,96 @@ export default function ReportsPage() {
   return (
     <div className="min-h-screen bg-[var(--bg)]">
       <Sidebar />
-      <div className="mr-[220px]">
+      <div className="lg:mr-[220px]">
         <Topbar title="التقارير والتحليلات" />
 
-        <main className="p-6 space-y-6">
-          {/* Tabs + export */}
-          <div className="flex flex-wrap items-center gap-3">
-            <div className="card-surface p-1 inline-flex gap-1">
-              {TABS.map((t) => (
-                <button
-                  key={t.id}
-                  onClick={() => setTab(t.id)}
-                  className={cn(
-                    "pressable h-8 px-4 rounded-md text-xs font-medium transition-colors",
-                    tab === t.id ? "bg-[var(--primary)] text-[var(--primary-fg)]" : "text-[var(--fg-muted)] hover:text-[var(--fg)]"
-                  )}
-                >{t.label}</button>
+        <main className="p-4 lg:p-6 space-y-5">
+          <div className="flex items-center justify-between">
+            <div className="flex gap-1 p-1 rounded-xl bg-[var(--surface-2)] border border-[var(--border)]">
+              {TABS.map(t => (
+                <button key={t.id} onClick={() => setTab(t.id)} className="pressable px-4 py-2 rounded-lg text-sm font-medium transition-all"
+                  style={tab === t.id ? { background: "var(--surface)", color: "var(--fg)", boxShadow: "var(--shadow-sm)" } : { color: "var(--fg-muted)" }}>
+                  {t.label}
+                </button>
               ))}
             </div>
-            <div className="flex-1" />
-            <button onClick={() => handleExport("pdf")} disabled={exporting !== null} className="pressable inline-flex items-center gap-2 h-9 px-4 rounded-lg border border-[var(--border)] bg-[var(--surface)] text-sm font-medium hover:bg-[var(--surface-2)] disabled:opacity-60">
-              <FileDown className="size-4" /> {exporting === "pdf" ? "جارٍ التصدير..." : "تصدير PDF"}
-            </button>
-            <button onClick={() => handleExport("xlsx")} disabled={exporting !== null} className="pressable inline-flex items-center gap-2 h-9 px-4 rounded-lg border border-[var(--border)] bg-[var(--surface)] text-sm font-medium hover:bg-[var(--surface-2)] disabled:opacity-60">
-              <FileSpreadsheet className="size-4" /> {exporting === "xlsx" ? "جارٍ التصدير..." : "تصدير Excel"}
-            </button>
+            <div className="flex gap-2">
+              {(["pdf", "xlsx"] as const).map(type => (
+                <button key={type} onClick={() => handleExport(type)} disabled={!!exporting}
+                  className="pressable flex items-center gap-2 px-4 py-2 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-sm text-[var(--fg-muted)] hover:bg-[var(--surface-2)] transition-all">
+                  {exporting === type ? <Loader2 className="size-4 animate-spin" /> : type === "pdf" ? <FileDown className="size-4" /> : <FileSpreadsheet className="size-4" />}
+                  {type.toUpperCase()}
+                </button>
+              ))}
+            </div>
           </div>
 
-          {/* Top stats */}
-          <section className="grid grid-cols-1 md:grid-cols-3 gap-4 stagger">
-            <KpiCard label="معدّل الإنجاز" value={67} suffix="%" icon={<TrendingUp className="size-4" />} delta="↑ ٤٪ هذا الشهر" deltaTone="success" />
-            <KpiCard label="أعلى مجال أداءً" value={78} suffix="%" icon={<Award className="size-4" />} delta="نظم المعلومات الصحية" deltaTone="muted" />
-            <KpiCard label="أعضاء نشطون" value={28} icon={<Users className="size-4" />} delta="من أصل ٣٦" deltaTone="muted" />
-          </section>
+          {tab === "overview" && (
+            <>
+              <div className="grid grid-cols-3 gap-4 stagger">
+                {[
+                  { label: "متوسط الدرجة الكلية", val: `${kpiStats.avgScore}%`, icon: Award,      color: "var(--primary)" },
+                  { label: "معدل إتمام التقييم",  val: "67%",                  icon: TrendingUp,  color: "var(--teal)"    },
+                  { label: "إجمالي الأعضاء",      val: kpiStats.totalMembers,   icon: Users,       color: "var(--purple)"  },
+                ].map(s => {
+                  const Icon = s.icon;
+                  return (
+                    <div key={s.label} className="card-surface p-5 flex items-center gap-4">
+                      <div className="size-12 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: s.color + "20", color: s.color }}>
+                        <Icon className="size-5" />
+                      </div>
+                      <div>
+                        <p className="text-eyebrow mb-1">{s.label}</p>
+                        <p className="font-cooper text-2xl font-bold text-[var(--fg)]">{s.val}</p>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                <div className="card-surface p-5">
+                  <h3 className="font-cooper font-bold text-[var(--fg)] mb-4">أداء الفريق حسب المجال</h3>
+                  <DomainBarChart />
+                </div>
+                <div className="card-surface p-5">
+                  <h3 className="font-cooper font-bold text-[var(--fg)] mb-4">نشاط الفريق الأسبوعي</h3>
+                  <WeeklyActivityChart />
+                </div>
+              </div>
+            </>
+          )}
 
-          {/* Domain chart */}
-          <section className="card-surface p-5 animate-slide-up">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="font-bold">الأداء حسب المجال</h3>
-              <span className="text-eyebrow">آخر ٣٠ يوماً</span>
+          {tab === "domain" && (
+            <div className="card-surface p-5">
+              <h3 className="font-cooper font-bold text-[var(--fg)] mb-6">تحليل تفصيلي لكل مجال</h3>
+              <DomainBarChart />
             </div>
-            <DomainBarChart height={340} />
-          </section>
+          )}
 
-          {/* Weekly activity */}
-          <section className="card-surface p-5 animate-slide-up">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="font-bold">النشاط الأسبوعي</h3>
-              <span className="text-eyebrow">دروس مكتملة / يوم</span>
+          {tab === "gaps" && (
+            <div className="card-surface p-5">
+              <h3 className="font-cooper font-bold text-[var(--fg)] mb-4">الثغرات المعرفية — تحتاج اهتماماً</h3>
+              <div className="space-y-3 stagger">
+                {gapAnalysis.map((g, i) => {
+                  const sv = severityConfig[g.severity as keyof typeof severityConfig];
+                  return (
+                    <div key={i} className="flex items-center gap-4 p-4 rounded-xl border border-[var(--border)] hover:bg-[var(--surface-2)] transition-colors">
+                      <AlertCircle className="size-5 flex-shrink-0" style={{ color: sv.fg }} />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-[var(--fg)] truncate">{g.domain}</p>
+                        <p className="text-[11px] text-[var(--fg-subtle)] mt-0.5">{g.affectedCount} عضو متأثر</p>
+                      </div>
+                      <span className="text-[11px] font-semibold px-3 py-1 rounded-full flex-shrink-0" style={{ background: sv.bg, color: sv.fg }}>
+                        {sv.label}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
-            <WeeklyActivityChart />
-          </section>
-
-          {/* Gaps */}
-          <section className="card-surface animate-slide-up">
-            <div className="px-5 py-4 border-b border-[var(--border)] flex items-center justify-between">
-              <h3 className="font-bold flex items-center gap-2"><AlertCircle className="size-4 text-[var(--warning)]" /> الثغرات المعرفية</h3>
-              <span className="text-eyebrow">حسب الأولوية</span>
-            </div>
-            <ul className="divide-y divide-[var(--border)]">
-              {gaps.map((g) => (
-                <li key={g.domain} className="px-5 py-3.5 flex items-center gap-3 hover:bg-[var(--surface-2)]/60 transition-colors">
-                  <SeverityDot s={g.severity as "high"|"medium"|"low"} />
-                  <div className="flex-1 font-medium text-sm">{g.domain}</div>
-                  <span className="num text-xs text-[var(--fg-muted)]">{g.members} عضو متأثر</span>
-                </li>
-              ))}
-            </ul>
-          </section>
+          )}
         </main>
       </div>
     </div>
-  );
-}
-
-function SeverityDot({ s }: { s: "high"|"medium"|"low" }) {
-  const map = {
-    high:   { bg: "bg-[var(--danger-soft)]",  fg: "text-[var(--danger)]",  label: "مرتفعة" },
-    medium: { bg: "bg-[var(--warning-soft)]", fg: "text-[var(--warning)]", label: "متوسطة" },
-    low:    { bg: "bg-[var(--success-soft)]", fg: "text-[var(--success)]", label: "منخفضة" },
-  }[s];
-  return (
-    <span className={cn("inline-flex items-center gap-1.5 px-2.5 h-6 rounded-full text-[11px] font-semibold", map.bg, map.fg)}>
-      <span className="size-1.5 rounded-full bg-current" />{map.label}
-    </span>
   );
 }

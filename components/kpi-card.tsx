@@ -1,64 +1,54 @@
 "use client";
-import { ReactNode } from "react";
-import { cn } from "@/lib/utils";
-import { CountUp } from "./count-up";
 
-type Variant = "primary" | "default";
-type DeltaTone = "success" | "warning" | "danger" | "muted";
+type Tone = "primary" | "peach" | "lavender" | "cream";
 
-export function KpiCard({
-  label, value, suffix = "", progress, delta, deltaTone = "muted", icon, variant = "default",
-}: {
+const variants: Record<Tone, { bg: string; fg: string; border?: string; deltaBg: string; deltaFg: string }> = {
+  primary:  { bg: "var(--kpi-green-bg)",    fg: "var(--kpi-green-fg)",    deltaBg: "rgba(255,255,255,.2)",       deltaFg: "#fff" },
+  peach:    { bg: "var(--kpi-peach-bg)",    fg: "var(--kpi-peach-fg)",    border: "var(--kpi-peach-bd)",    deltaBg: "var(--kpi-peach-bd)",    deltaFg: "var(--coral)" },
+  lavender: { bg: "var(--kpi-lavender-bg)", fg: "var(--kpi-lavender-fg)", border: "var(--kpi-lavender-bd)", deltaBg: "var(--kpi-lavender-bd)", deltaFg: "var(--purple)" },
+  cream:    { bg: "var(--kpi-cream-bg)",    fg: "var(--kpi-cream-fg)",    border: "var(--kpi-cream-bd)",    deltaBg: "var(--kpi-cream-bd)",    deltaFg: "var(--amber)" },
+};
+
+type Props = {
   label: string;
-  value: number;
+  value: number | string;
   suffix?: string;
-  progress?: number;
   delta?: string;
-  deltaTone?: DeltaTone;
-  icon?: ReactNode;
-  variant?: Variant;
-}) {
-  const isPrimary = variant === "primary";
+  icon?: React.ReactNode;
+  progress?: number;
+  variant?: Tone;
+};
+
+export function KpiCard({ label, value, suffix, delta, icon, progress, variant = "peach" }: Props) {
+  const v = variants[variant];
   return (
-    <div
-      className={cn(
-        "lift lift-hover relative overflow-hidden p-5 rounded-xl border",
-        isPrimary
-          ? "bg-[var(--primary)] text-[var(--primary-fg)] border-transparent shadow-primary-glow"
-          : "card-surface"
-      )}
-    >
-      <div className="flex items-start justify-between mb-4">
-        <div className={cn("text-eyebrow", isPrimary && "text-white/75")}>{label}</div>
-        {icon && (
-          <div className={cn(
-            "size-9 rounded-lg grid place-items-center",
-            isPrimary ? "bg-white/15 text-white" : "bg-[var(--primary-soft)] text-[var(--primary)]"
-          )}>{icon}</div>
-        )}
+    <div className="lift rounded-[var(--radius)] p-5 border" style={{
+      background: v.bg,
+      borderColor: v.border ?? v.bg,
+      boxShadow: variant === "primary" ? "var(--shadow-primary)" : "var(--shadow-sm)",
+    }}>
+      <div className="flex items-start justify-between mb-3">
+        <p className="text-eyebrow" style={{ color: variant === "primary" ? "rgba(255,255,255,.65)" : "inherit" }}>{label}</p>
+        <div className="size-8 rounded-full flex items-center justify-center pressable"
+          style={{ background: variant === "primary" ? "rgba(255,255,255,.2)" : "rgba(255,255,255,.6)", border: "0.5px solid " + (v.border ?? "rgba(255,255,255,.3)"), color: v.fg }}>
+          {icon}
+        </div>
       </div>
 
-      <div className={cn("text-display num", isPrimary && "text-white")}>
-        <CountUp to={value} suffix={suffix} />
-      </div>
+      <p className="font-cooper text-3xl font-bold mb-2 leading-none" style={{ color: v.fg }}>
+        {value}{suffix}
+      </p>
 
       {progress !== undefined && (
-        <div className={cn("mt-3 h-1.5 rounded-full overflow-hidden", isPrimary ? "bg-white/20" : "bg-[var(--surface-2)]")}>
-          <div
-            className={cn("h-full rounded-full", isPrimary ? "bg-white" : "bg-[var(--primary)]")}
-            style={{ width: `${progress}%`, transition: "width 800ms cubic-bezier(.2,.7,.2,1)" }}
-          />
+        <div className="h-1.5 rounded-full mb-2 overflow-hidden" style={{ background: "rgba(255,255,255,.25)" }}>
+          <div className="h-full rounded-full animate-bar-grow" style={{ width: `${progress}%`, background: variant === "primary" ? "#fff" : v.fg, transformOrigin: "right center" }} />
         </div>
       )}
 
       {delta && (
-        <div className={cn(
-          "mt-3 text-xs font-medium",
-          deltaTone === "success" && "text-[var(--success)]",
-          deltaTone === "warning" && "text-[var(--warning)]",
-          deltaTone === "danger"  && "text-[var(--danger)]",
-          deltaTone === "muted"   && (isPrimary ? "text-white/80" : "text-[var(--fg-muted)]"),
-        )}>{delta}</div>
+        <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1 rounded-full" style={{ background: v.deltaBg, color: v.deltaFg }}>
+          {delta}
+        </span>
       )}
     </div>
   );

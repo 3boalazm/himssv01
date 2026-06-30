@@ -1,19 +1,41 @@
 "use client";
-import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Tooltip, CartesianGrid } from "recharts";
 import { weeklyActivity } from "@/lib/mock-data";
 
-export function WeeklyActivityChart({ height = 260 }: { height?: number }) {
+export function WeeklyActivityChart() {
+  const max = Math.max(...weeklyActivity.map(d => d.sessions));
+  const avg = Math.round(weeklyActivity.reduce((a, d) => a + d.sessions, 0) / weeklyActivity.length);
   return (
-    <div className="chart-animate" style={{ width: "100%", height }} dir="rtl">
-      <ResponsiveContainer>
-        <BarChart data={weeklyActivity} margin={{ top: 8, right: 8, left: 8, bottom: 8 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
-          <XAxis dataKey="day" reversed tick={{ fill: "var(--fg-muted)", fontSize: 12 }} axisLine={false} tickLine={false} />
-          <YAxis orientation="right" tick={{ fill: "var(--fg-muted)", fontSize: 12 }} axisLine={false} tickLine={false} />
-          <Tooltip cursor={{ fill: "var(--surface-2)" }} contentStyle={{ direction: "rtl" }} formatter={(v: number) => [`${v} درس`, ""]} />
-          <Bar dataKey="lessons" radius={[6, 6, 0, 0]} fill="var(--primary)" animationDuration={800} />
-        </BarChart>
-      </ResponsiveContainer>
+    <div>
+      <div className="flex items-end gap-2 h-[90px] mb-2">
+        {weeklyActivity.map((d, i) => {
+          const h = Math.round((d.sessions / max) * 100);
+          const isMax = d.sessions === max;
+          return (
+            <div key={d.day} className="flex flex-col items-center gap-1 flex-1">
+              {isMax && (
+                <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-[var(--primary-soft)] text-[var(--primary)]">{d.sessions}</span>
+              )}
+              <div className="flex-1 w-full flex items-end">
+                <div
+                  className="w-full rounded-t-lg pressable animate-bar-grow"
+                  style={{
+                    height: `${h}%`,
+                    background: isMax ? "var(--primary)" : d.sessions > avg ? "color-mix(in oklab, var(--primary) 50%, var(--surface-2))" : "var(--surface-2)",
+                    border: "0.5px solid " + (isMax ? "var(--primary)" : "var(--border)"),
+                    animationDelay: `${i * .06}s`,
+                    transformOrigin: "bottom center",
+                  }}
+                />
+              </div>
+              <span className="text-[10px] text-[var(--fg-subtle)]">{d.day.slice(0, 2)}</span>
+            </div>
+          );
+        })}
+      </div>
+      <div className="flex justify-between text-[10px] text-[var(--fg-subtle)] mt-1">
+        <span>متوسط: {avg} جلسة/يوم</span>
+        <span>هذا الأسبوع</span>
+      </div>
     </div>
   );
 }
